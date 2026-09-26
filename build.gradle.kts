@@ -37,11 +37,8 @@ tasks.processResources {
 
 tasks.jar { enabled = false }
 tasks.shadowJar {
-    val buildDate = providers.gradleProperty("buildDate").orNull
-    val buildVersion = project.version.toString()
-    val fileVersion = if (buildDate == null) buildVersion else "$buildDate-b$buildVersion"
     archiveClassifier.set("")
-    archiveFileName.set("HCPlaceholdersExtra-$fileVersion.jar")
+    archiveFileName.set("HCPlaceholdersExtra-${project.version}.jar")
 }
 tasks.build { dependsOn(tasks.shadowJar) }
 tasks.test { useJUnitPlatform() }
