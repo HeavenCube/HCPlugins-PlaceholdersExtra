@@ -1,0 +1,6 @@
+.gradle/
+build/
+placeholders-api/build/
+.hcplugins/
+.idea/
+*.iml

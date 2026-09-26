@@ -1,0 +1,33 @@
+name: HCPlaceholdersExtra
+version: "${version}"
+main: fr.noltox.hcplugins.placeholdersextra.HCPlaceholdersExtra
+api-version: "26.2"
+description: Centralise les placeholders personnalisés HeavenCube.
+author: Noltox
+website: https://heavencube.fr/
+dependencies:
+  server:
+    HCCore:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    LuckPerms:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    NBTAPI:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    Nexo:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    voicechat:
+      load: BEFORE
+      required: false
+      join-classpath: true
