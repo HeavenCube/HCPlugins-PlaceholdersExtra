@@ -1,6 +1,7 @@
 package fr.noltox.hcplugins.placeholdersextra.command;
 
 import fr.noltox.hcplugins.core.api.command.CoreCommand;
+import fr.noltox.hcplugins.core.api.message.CoreTranslations;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -11,6 +12,12 @@ import java.util.List;
  * Documents every placeholder exposed by the central {@code hcextra} expansion.
  */
 public final class PlaceholdersCommand implements CoreCommand {
+
+    private final CoreTranslations translations;
+
+    public PlaceholdersCommand(CoreTranslations translations) {
+        this.translations = translations;
+    }
 
     private static final List<Component> DOCUMENTATION = List.of(
             Component.text("Placeholders hcextra disponibles (syntaxe brute) :", NamedTextColor.GOLD),
@@ -59,10 +66,7 @@ public final class PlaceholdersCommand implements CoreCommand {
     public void execute(CommandSourceStack source, String[] args) {
         var sender = source.getSender();
         if (!sender.isOp()) {
-            sender.sendMessage(Component.text(
-                    "Cette commande est réservée aux opérateurs.",
-                    NamedTextColor.RED
-            ));
+            sender.sendMessage(translations.operatorOnly());
             return;
         }
         if (args.length != 0) {

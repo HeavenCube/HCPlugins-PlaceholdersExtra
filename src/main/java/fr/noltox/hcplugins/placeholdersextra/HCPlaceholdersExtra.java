@@ -57,7 +57,7 @@ public final class HCPlaceholdersExtra extends JavaPlugin implements Listener {
             startNexoIntegration();
             startLuckPermsIntegration();
             startVoiceChatIntegration();
-            PlaceholdersCommand commands = new PlaceholdersCommand();
+            PlaceholdersCommand commands = new PlaceholdersCommand(HCPluginsCore.translations(this));
             commandRegistration = HCPluginsCore.require(this).register(
                     this,
                     "placeholders",
