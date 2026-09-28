@@ -35,7 +35,7 @@ public final class PlaceholdersCommand implements CoreCommand {
             entry(
                     "%hcextra_checkitem_<modificateurs>%",
                     "Vérifie un inventaire ; préfixes amount_, getinfo:<slot>_, give_ et remove_. "
-                            + "Critères principaux : mat, amt, nom, lore, enchantements, potion, main/slot, NBT et Nexo."
+                            + "Critères principaux : mat, amt, nom, lore, enchantements, potion, main/slot, PDC et Nexo."
             ),
             Component.text(
                     "  Exemples : %hcextra_checkitem_mat:STONE,amt:2% ; "

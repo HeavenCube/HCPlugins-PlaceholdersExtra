@@ -29,9 +29,9 @@ public final class CheckItemIntegration implements AutoCloseable {
         Objects.requireNonNull(plugin, "plugin");
         Objects.requireNonNull(registry, "registry");
         var nexoBridge = new NexoBridgeState();
-        var itemData = new NbtApiItemDataBridge();
+        var itemData = new PaperPdcItemBridge(plugin);
         var provider = new CheckItemProvider(
-                new CheckItemParser(),
+                new CheckItemParser(plugin),
                 new CheckItemService(itemData, nexoBridge)
         );
         var registration = registry.register(plugin, "checkitem", provider);

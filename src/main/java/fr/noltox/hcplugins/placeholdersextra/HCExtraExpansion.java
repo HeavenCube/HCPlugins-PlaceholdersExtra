@@ -28,8 +28,8 @@ final class HCExtraExpansion extends PlaceholderExpansion implements Relational 
             "%hcextra_checkitem_remove_mat:STONE,amt:2%",
             "%hcextra_checkitem_nexo:custom_sword%",
             "%hcextra_checkitem_amount_nexo:custom_sword%",
-            "%hcextra_checkitem_nbtstrings:clé=valeur%",
-            "%hcextra_checkitem_componentstrings:minecraft:custom_name=valeur%",
+            "%hcextra_checkitem_pdc:clé=valeur%",
+            "%hcextra_checkitem_pdc:minecraft:custom_tag%",
             "%hcextra_glow_color%",
             "%rel_hcextra_voicechat_icon%"
     );

@@ -1,5 +1,9 @@
 package fr.noltox.hcplugins.placeholdersextra.provider.checkitem;
 
+import fr.noltox.hcplugins.core.api.message.MiniMessages;
+import net.kyori.adventure.text.Component;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -24,12 +28,12 @@ class ItemMatcherTest {
     private static CustomItemBridge customItems(String id) {
         return new CustomItemBridge() {
             @Override
-            public String idFromItem(org.bukkit.inventory.ItemStack item) {
+            public String idFromItem(ItemStack item) {
                 return id;
             }
 
             @Override
-            public org.bukkit.inventory.ItemStack build(String itemId) {
+            public ItemStack build(String itemId) {
                 return null;
             }
         };
@@ -53,7 +57,17 @@ class ItemMatcherTest {
     }
 
     @Test
-    void delegatesNbtCriteriaWithoutNeedingNbtApiInTheTest() throws Exception {
+    void delegatesPdcCriteriaWithoutExternalDependencies() throws Exception {
+        ItemFacts stone = facts("STONE", 1);
+        ItemCriteria criteria = criteria("mat:STONE,pdcints:level=2");
+
+        ItemMatcher matcher = new ItemMatcher(new FakeItemDataBridge(true), customItems(null));
+        assertTrue(matcher.matches(stone, criteria, null, true));
+        assertFalse(matcher.matches(stone, criteria, null, false));
+    }
+
+    @Test
+    void preservesCompatibilityWithNbtAliases() throws Exception {
         ItemFacts stone = facts("STONE", 1);
         ItemCriteria criteria = criteria("mat:STONE,nbtints:level=2");
 
@@ -62,23 +76,78 @@ class ItemMatcherTest {
         assertFalse(matcher.matches(stone, criteria, null, false));
     }
 
+    @Test
+    void matchesComponentTextWithPlainMiniMessageAndLegacy() {
+        Component sword = MiniMessages.parse("<red>Épée Magique</red>");
+
+        // Plain text matching
+        assertTrue(ItemMatcher.matchesComponentText(
+                sword,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.EQUALS, List.of("Épée Magique"))
+        ));
+        assertTrue(ItemMatcher.matchesComponentText(
+                sword,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.CONTAINS, List.of("Magique"))
+        ));
+        assertTrue(ItemMatcher.matchesComponentText(
+                sword,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.STARTS_WITH, List.of("Épée"))
+        ));
+
+        // MiniMessage matching
+        assertTrue(ItemMatcher.matchesComponentText(
+                sword,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.EQUALS, List.of("<red>Épée Magique</red>"))
+        ));
+        assertTrue(ItemMatcher.matchesComponentText(
+                sword,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.CONTAINS, List.of("<red>"))
+        ));
+
+        // Negative check
+        assertFalse(ItemMatcher.matchesComponentText(
+                sword,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.EQUALS, List.of("Autre Arme"))
+        ));
+    }
+
+    @Test
+    void nullAndAirSafelyHandledInMatcher() {
+        ItemMatcher matcher = new ItemMatcher(new FakeItemDataBridge(true), customItems(null));
+
+        assertFalse(matcher.matches((ItemStack) null, ItemCriteria.TextCriterion.Mode.EQUALS != null ? null : null));
+        assertTrue(ItemMatcher.checkDisplayName(null, null));
+        assertFalse(ItemMatcher.checkDisplayName(null, new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.EQUALS, List.of("Nom"))));
+        assertTrue(ItemMatcher.checkLore(null, null));
+        assertFalse(ItemMatcher.checkLore(null, new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.EQUALS, List.of("Lore"))));
+        assertTrue(ItemMatcher.checkCustomModelData(null, null));
+        assertFalse(ItemMatcher.checkCustomModelData(null, 123));
+        assertTrue(ItemMatcher.checkPdc(null, List.of()));
+        assertFalse(ItemMatcher.checkPdc(null, List.of(new PdcCriterion(org.bukkit.NamespacedKey.minecraft("test"), PdcCriterion.PdcType.ANY, null))));
+    }
+
     private ItemCriteria criteria(String value) throws CheckItemParseException {
         return parser.parse(value, UnaryOperator.identity()).criteria();
     }
 
     private record FakeItemDataBridge(boolean result) implements ItemDataBridge {
         @Override
-        public boolean matches(org.bukkit.inventory.ItemStack item, List<RawDataCriterion> criteria) {
+        public boolean matches(ItemStack item, List<PdcCriterion> criteria) {
             return criteria.isEmpty() || result;
         }
 
         @Override
-        public void apply(org.bukkit.inventory.ItemStack item, List<RawDataCriterion> criteria) {
+        public boolean matches(ItemMeta meta, List<PdcCriterion> criteria) {
+            return criteria.isEmpty() || result;
+        }
+
+        @Override
+        public void apply(ItemMeta meta, List<PdcCriterion> criteria) {
             // No mutation is needed for matching tests.
         }
 
         @Override
-        public String read(org.bukkit.inventory.ItemStack item, InfoRequest request) {
+        public String read(ItemStack item, ItemMeta meta, InfoRequest request) {
             return "";
         }
     }

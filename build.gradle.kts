@@ -15,10 +15,10 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.12.3")
     compileOnly("net.luckperms:api:5.5")
     compileOnly("de.maxhenkel.voicechat:voicechat-api:2.6.24")
-    compileOnly("de.tr7zw:item-nbt-api-plugin:2.16.1")
     compileOnly("com.nexomc:nexo:1.28.0") { isTransitive = false }
 
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
+    testImplementation("fr.noltox.hcplugins:core-api")
     testImplementation("io.papermc.paper:paper-api:26.2.build.+")
     testImplementation("de.maxhenkel.voicechat:voicechat-api:2.6.24")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")

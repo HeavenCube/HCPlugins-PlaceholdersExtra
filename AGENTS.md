@@ -25,7 +25,7 @@ consulter [son guide](https://github.com/HeavenCube/HCPlugins-Core/blob/main/doc
 ## Invariants propres à ce dépôt
 
 - Plugin serveur `HCPlaceholdersExtra`, HCCore obligatoire ; module `placeholders`.
-- HCCore, PlaceholderAPI et NBTAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
+- HCCore et PlaceholderAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
 - Ne pas créer une deuxième expansion HeavenCube : contribuer au registre existant.
 - Les fournisseurs peuvent être invoqués hors thread serveur : vérifier le chemin et les assertions de CheckItem avant accès/mutation inventaire.
 - Conserver compte LuckPerms de permissions directes, positives, exactes, non expirées ; ne pas transformer en comptage de groupes/wildcards.

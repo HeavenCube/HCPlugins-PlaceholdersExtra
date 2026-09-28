@@ -1,5 +1,7 @@
 package fr.noltox.hcplugins.placeholdersextra.provider.checkitem;
 
+import org.bukkit.NamespacedKey;
+import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 
 import java.util.function.UnaryOperator;
@@ -37,6 +39,49 @@ class CheckItemParserTest {
     }
 
     @Test
+    void parsesPdcPresenceAndTypedCriteria() throws Exception {
+        CheckItemQuery query = parse(
+                "mat:STONE,pdc:simple_tag,pdcstrings:custom:text=val,pdcints:level=42,pdcbooleans:active=true,pdcbytes:status=1,pdcdoubles:ratio=3.14"
+        );
+
+        assertEquals(6, query.criteria().pdc().size());
+
+        // Presence check
+        PdcCriterion simpleTag = query.criteria().pdc().get(0);
+        assertEquals(NamespacedKey.minecraft("simple_tag"), simpleTag.key());
+        assertEquals(PdcCriterion.PdcType.ANY, simpleTag.type());
+        assertTrue(simpleTag.isPresenceOnly());
+        assertNull(simpleTag.expectedValue());
+
+        // Typed String with custom namespace
+        PdcCriterion textTag = query.criteria().pdc().get(1);
+        assertEquals(new NamespacedKey("custom", "text"), textTag.key());
+        assertEquals(PdcCriterion.PdcType.STRING, textTag.type());
+        assertFalse(textTag.isPresenceOnly());
+        assertEquals("val", textTag.expectedValue());
+
+        // Typed Integer
+        PdcCriterion levelTag = query.criteria().pdc().get(2);
+        assertEquals(PdcCriterion.PdcType.INTEGER, levelTag.type());
+        assertEquals(42, levelTag.expectedValue());
+
+        // Typed Boolean
+        PdcCriterion activeTag = query.criteria().pdc().get(3);
+        assertEquals(PdcCriterion.PdcType.BOOLEAN, activeTag.type());
+        assertEquals(true, activeTag.expectedValue());
+
+        // Typed Byte
+        PdcCriterion statusTag = query.criteria().pdc().get(4);
+        assertEquals(PdcCriterion.PdcType.BYTE, statusTag.type());
+        assertEquals((byte) 1, statusTag.expectedValue());
+
+        // Typed Double
+        PdcCriterion ratioTag = query.criteria().pdc().get(5);
+        assertEquals(PdcCriterion.PdcType.DOUBLE, ratioTag.type());
+        assertEquals(3.14, ratioTag.expectedValue());
+    }
+
+    @Test
     void resolvesNestedPlaceholderValuesAfterStructuralParsing() throws Exception {
         CheckItemQuery query = parser.parse(
                 "mat:{material},nameequals:{name}",
@@ -57,6 +102,7 @@ class CheckItemParserTest {
         assertEquals(ItemSelection.OFF_HAND, parse("mat:STONE,inhand:off").selection());
         assertEquals(ItemSelection.slot(12), parse("mat:STONE,inslot:12").selection());
         assertEquals(ItemSelection.MAIN_HAND, parse("getinfo:mainhand_mat:,amt:").selection());
+        assertEquals(ItemSelection.MAIN_HAND, parse("getinfo:mainhand_pdc:simple_tag").selection());
     }
 
     @Test
