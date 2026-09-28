@@ -11,3 +11,11 @@ La CI compile Core depuis ses sources et crée un JAR versionné à chaque build
 
 Le module `placeholders-api` est un contrat Java local pour les plugins contributeurs,
 compilé depuis ce dépôt par Gradle composite. Aucun package Maven n'est publié.
+
+## Maintenance et documentation technique
+
+HCCore est obligatoire. Pour toute modification technique, commencer par [AGENTS.md](AGENTS.md),
+puis [le guide du plugin](docs/TECHNICAL.md) et le Core voisin.
+Le [guide commun](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/ECOSYSTEM.md) décrit les conventions de toute la suite.
+`CLAUDE.md` et `GEMINI.md` renvoient aux mêmes instructions, sans copie des règles.
+Le catalogue commun `plugins/HCPlugins/translations.yml` se recharge par `/hcplugins core reload`.
