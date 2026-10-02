@@ -1,6 +1,8 @@
 package fr.noltox.hcplugins.placeholdersextra.provider.checkitem;
 
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.potion.PotionType;
 
 import java.util.*;
@@ -14,11 +16,17 @@ final class CheckItemParser {
     private static final Pattern KEY_PATTERN = Pattern.compile("(?:[a-z0-9._-]+:)?[a-z0-9._/-]+");
     private static final Pattern MATERIAL_PATTERN = Pattern.compile("[A-Z0-9_]+");
 
+    private final Plugin plugin;
     private final Predicate<String> materialValidator;
     private final Predicate<String> potionValidator;
 
     CheckItemParser() {
+        this(null);
+    }
+
+    CheckItemParser(Plugin plugin) {
         this(
+                plugin,
                 value -> {
                     Material material = Material.matchMaterial(value);
                     return material != null && material.isItem() && !material.isAir();
@@ -35,6 +43,15 @@ final class CheckItemParser {
     }
 
     CheckItemParser(Predicate<String> materialValidator, Predicate<String> potionValidator) {
+        this(null, materialValidator, potionValidator);
+    }
+
+    CheckItemParser(
+            Plugin plugin,
+            Predicate<String> materialValidator,
+            Predicate<String> potionValidator
+    ) {
+        this.plugin = plugin;
         this.materialValidator = materialValidator;
         this.potionValidator = potionValidator;
     }
@@ -49,7 +66,8 @@ final class CheckItemParser {
 
     private static boolean requiresInfoArgument(InfoRequest.Kind kind) {
         return switch (kind) {
-            case CUSTOM_DATA_STRING, CUSTOM_DATA_INTEGER, COMPONENT_STRING, COMPONENT_INTEGER -> true;
+            case PDC_ANY, PDC_STRING, PDC_INTEGER, PDC_BYTE, PDC_DOUBLE, PDC_BOOLEAN,
+                 CUSTOM_DATA_STRING, CUSTOM_DATA_INTEGER, COMPONENT_STRING, COMPONENT_INTEGER -> true;
             default -> false;
         };
     }
@@ -92,6 +110,22 @@ final class CheckItemParser {
             return Integer.parseInt(requireValue(name, value));
         } catch (NumberFormatException exception) {
             throw new CheckItemParseException(name + " n'est pas un entier valide.", exception);
+        }
+    }
+
+    private static byte parseByte(String name, String value) throws CheckItemParseException {
+        try {
+            return Byte.parseByte(requireValue(name, value));
+        } catch (NumberFormatException exception) {
+            throw new CheckItemParseException(name + " n'est pas un octet (byte) valide.", exception);
+        }
+    }
+
+    private static double parseDouble(String name, String value) throws CheckItemParseException {
+        try {
+            return Double.parseDouble(requireValue(name, value));
+        } catch (NumberFormatException exception) {
+            throw new CheckItemParseException(name + " n'est pas un nombre décimal (double) valide.", exception);
         }
     }
 
@@ -142,34 +176,49 @@ final class CheckItemParser {
         return result;
     }
 
-    private static List<RawDataCriterion> parseRawData(
-            RawDataCriterion.Scope scope,
-            RawDataCriterion.ValueType type,
+    private List<PdcCriterion> parsePdc(
+            PdcCriterion.PdcType type,
             String value,
             UnaryOperator<String> nestedResolver
     ) throws CheckItemParseException {
-        List<RawDataCriterion> result = new ArrayList<>();
-        for (String entry : EscapedText.split(requireValue("données NBT", value), ';')) {
+        List<PdcCriterion> result = new ArrayList<>();
+        for (String entry : EscapedText.split(requireValue("données PDC", value), ';')) {
             String[] pair = EscapedText.splitFirst(entry, '=');
-            String path = validateRawPath("données NBT", nestedResolver.apply(pair[0]));
+            String rawKey = validateKey("clé PDC", nestedResolver.apply(pair[0]));
+            NamespacedKey key = parseKey(rawKey);
             String rawExpected = nestedResolver.apply(pair[1]);
             if (rawExpected.isEmpty()) {
-                throw new CheckItemParseException("Une donnée NBT doit respecter chemin=valeur.");
+                result.add(new PdcCriterion(key, type, null));
+            } else {
+                Object expected = switch (type) {
+                    case INTEGER -> parseInteger("valeur PDC int", rawExpected);
+                    case BYTE -> parseByte("valeur PDC byte", rawExpected);
+                    case DOUBLE -> parseDouble("valeur PDC double", rawExpected);
+                    case BOOLEAN -> parseBoolean("valeur PDC boolean", rawExpected);
+                    case STRING, ANY -> rawExpected;
+                };
+                result.add(new PdcCriterion(key, type, expected));
             }
-            Object expected = type == RawDataCriterion.ValueType.INTEGER
-                    ? parseInteger("valeur NBT", rawExpected)
-                    : rawExpected;
-            result.add(new RawDataCriterion(scope, type, path, expected));
         }
         return result;
     }
 
-    private static String validateRawPath(String name, String path) throws CheckItemParseException {
-        String required = requireValue(name, path);
-        if (List.of(required.split("\\.\\.", -1)).stream().anyMatch(String::isBlank)) {
-            throw new CheckItemParseException("Chemin de donnée brute invalide : " + path);
+    private static String validateKey(String name, String key) throws CheckItemParseException {
+        String required = requireValue(name, key);
+        if (required.contains("..")) {
+            throw new CheckItemParseException("Chemin ou clé PDC invalide : " + key);
         }
         return required;
+    }
+
+    private NamespacedKey parseKey(String key) throws CheckItemParseException {
+        NamespacedKey namespacedKey = plugin != null
+                ? NamespacedKey.fromString(key.toLowerCase(Locale.ROOT), plugin)
+                : NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
+        if (namespacedKey == null) {
+            throw new CheckItemParseException("Clé NamespacedKey invalide : " + key);
+        }
+        return namespacedKey;
     }
 
     private static List<String> resolveAll(List<String> values, UnaryOperator<String> resolver) {
@@ -190,7 +239,7 @@ final class CheckItemParser {
         }
 
         ParsedOperation parsedOperation = parseOperation(input);
-        Builder builder = new Builder(parsedOperation.operation(), parsedOperation.selection());
+        Builder builder = new Builder(parsedOperation.operation(), parsedOperation.selection(), this::parseKey);
         if (builder.operation == CheckItemOperation.GET_INFO) {
             parseInfoRequests(parsedOperation.modifiers(), nestedResolver, builder);
         } else {
@@ -282,17 +331,23 @@ final class CheckItemParser {
                 case "potionextended" -> builder.potionExtended(parseBoolean(name, value));
                 case "potionupgraded" -> builder.potionUpgraded(parseBoolean(name, value));
                 case "nexo" -> builder.nexoId(requireValue(name, value));
-                case "nbtstrings", "customdatastrings" -> builder.rawData(
-                        parseRawData(RawDataCriterion.Scope.CUSTOM_DATA, RawDataCriterion.ValueType.STRING, value, nestedResolver)
+                case "pdc", "pdctags", "pdctag" -> builder.pdc(
+                        parsePdc(PdcCriterion.PdcType.ANY, value, nestedResolver)
                 );
-                case "nbtints", "customdataints" -> builder.rawData(
-                        parseRawData(RawDataCriterion.Scope.CUSTOM_DATA, RawDataCriterion.ValueType.INTEGER, value, nestedResolver)
+                case "pdcstrings", "pdcstring", "nbtstrings", "customdatastrings", "componentstrings" -> builder.pdc(
+                        parsePdc(PdcCriterion.PdcType.STRING, value, nestedResolver)
                 );
-                case "componentstrings" -> builder.rawData(
-                        parseRawData(RawDataCriterion.Scope.COMPONENTS, RawDataCriterion.ValueType.STRING, value, nestedResolver)
+                case "pdcints", "pdcint", "nbtints", "customdataints", "componentints" -> builder.pdc(
+                        parsePdc(PdcCriterion.PdcType.INTEGER, value, nestedResolver)
                 );
-                case "componentints" -> builder.rawData(
-                        parseRawData(RawDataCriterion.Scope.COMPONENTS, RawDataCriterion.ValueType.INTEGER, value, nestedResolver)
+                case "pdcbytes", "pdcbyte" -> builder.pdc(
+                        parsePdc(PdcCriterion.PdcType.BYTE, value, nestedResolver)
+                );
+                case "pdcdoubles", "pdcdouble" -> builder.pdc(
+                        parsePdc(PdcCriterion.PdcType.DOUBLE, value, nestedResolver)
+                );
+                case "pdcbooleans", "pdcbool", "pdcboolean" -> builder.pdc(
+                        parsePdc(PdcCriterion.PdcType.BOOLEAN, value, nestedResolver)
                 );
                 case "inhand" -> builder.selection(parseHand(value));
                 case "inslot" -> builder.selection(ItemSelection.slot(parseSlot(value)));
@@ -333,14 +388,16 @@ final class CheckItemParser {
                 case "enchantments", "enchanted" -> InfoRequest.Kind.ENCHANTMENTS;
                 case "potiontype", "potionextended", "potionupgraded" -> InfoRequest.Kind.POTION_TYPE;
                 case "nexo" -> InfoRequest.Kind.NEXO;
-                case "nbtstrings", "customdatastrings" -> InfoRequest.Kind.CUSTOM_DATA_STRING;
-                case "nbtints", "customdataints" -> InfoRequest.Kind.CUSTOM_DATA_INTEGER;
-                case "componentstrings" -> InfoRequest.Kind.COMPONENT_STRING;
-                case "componentints" -> InfoRequest.Kind.COMPONENT_INTEGER;
+                case "pdc", "pdctags", "pdctag" -> InfoRequest.Kind.PDC_ANY;
+                case "pdcstrings", "pdcstring", "nbtstrings", "customdatastrings", "componentstrings" -> InfoRequest.Kind.PDC_STRING;
+                case "pdcints", "pdcint", "nbtints", "customdataints", "componentints" -> InfoRequest.Kind.PDC_INTEGER;
+                case "pdcbytes", "pdcbyte" -> InfoRequest.Kind.PDC_BYTE;
+                case "pdcdoubles", "pdcdouble" -> InfoRequest.Kind.PDC_DOUBLE;
+                case "pdcbooleans", "pdcbool", "pdcboolean" -> InfoRequest.Kind.PDC_BOOLEAN;
                 default -> throw new CheckItemParseException("Champ getinfo inconnu : " + name);
             };
             if (requiresInfoArgument(kind)) {
-                argument = validateRawPath(name, argument);
+                argument = validateKey(name, argument);
             }
             builder.infoRequests.add(new InfoRequest(kind, argument));
         }
@@ -354,13 +411,19 @@ final class CheckItemParser {
     ) {
     }
 
+    @FunctionalInterface
+    interface KeyParser {
+        NamespacedKey parse(String key) throws CheckItemParseException;
+    }
+
     private static final class Builder {
 
         private final CheckItemOperation operation;
         private final Set<String> unique = new HashSet<>();
         private final List<EnchantmentCriterion> enchantments = new ArrayList<>();
-        private final List<RawDataCriterion> rawData = new ArrayList<>();
+        private final List<PdcCriterion> pdc = new ArrayList<>();
         private final List<InfoRequest> infoRequests = new ArrayList<>();
+        private final KeyParser keyParser;
         private ItemSelection selection;
         private String material;
         private String materialContains;
@@ -377,9 +440,10 @@ final class CheckItemParser {
         private boolean reportAmount;
         private int substantiveCriteria;
 
-        private Builder(CheckItemOperation operation, ItemSelection selection) {
+        private Builder(CheckItemOperation operation, ItemSelection selection, KeyParser keyParser) {
             this.operation = operation;
             this.selection = selection;
+            this.keyParser = keyParser;
         }
 
         private static ItemCriteria emptyCriteria() {
@@ -467,8 +531,8 @@ final class CheckItemParser {
             substantiveCriteria++;
         }
 
-        private void rawData(List<RawDataCriterion> values) {
-            rawData.addAll(values);
+        private void pdc(List<PdcCriterion> values) {
+            pdc.addAll(values);
             substantiveCriteria += values.size();
         }
 
@@ -512,7 +576,7 @@ final class CheckItemParser {
                     enchanted,
                     potion,
                     nexoId,
-                    rawData,
+                    pdc,
                     strict
             );
             return new CheckItemQuery(operation, selection, criteria, List.of(), reportAmount);

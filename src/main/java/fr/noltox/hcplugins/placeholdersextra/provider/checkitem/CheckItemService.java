@@ -1,7 +1,6 @@
 package fr.noltox.hcplugins.placeholdersextra.provider.checkitem;
 
-import io.papermc.paper.datacomponent.DataComponentTypes;
-import io.papermc.paper.datacomponent.item.CustomModelData;
+import fr.noltox.hcplugins.core.api.message.MiniMessages;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -62,11 +61,11 @@ final class CheckItemService {
     }
 
     private static List<InventoryItem> selectedItem(int slot, ItemStack item) {
-        return item == null || item.isEmpty() ? List.of() : List.of(new InventoryItem(slot, item));
+        return item == null || item.isEmpty() || item.getType().isAir() ? List.of() : List.of(new InventoryItem(slot, item));
     }
 
     private static void addIfPresent(List<InventoryItem> items, int slot, ItemStack item) {
-        if (item != null && !item.isEmpty()) {
+        if (item != null && !item.isEmpty() && !item.getType().isAir()) {
             items.add(new InventoryItem(slot, item));
         }
     }
@@ -184,16 +183,24 @@ final class CheckItemService {
         ItemStack item = criteria.nexoId() == null
                 ? (material == null ? null : ItemStack.of(material))
                 : customItems.build(criteria.nexoId());
-        if (item == null || item.isEmpty()) {
+        if (item == null || item.isEmpty() || item.getType().isAir()) {
             return null;
         }
 
         ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return null;
+        }
         if (criteria.name() != null) {
-            meta.customName(LEGACY.deserialize(criteria.name().values().getFirst()));
+            String nameStr = criteria.name().values().getFirst();
+            meta.displayName(nameStr.contains("&")
+                    ? LEGACY.deserialize(nameStr)
+                    : MiniMessages.parse(nameStr));
         }
         if (criteria.lore() != null) {
-            meta.lore(criteria.lore().values().stream().map(LEGACY::deserialize).toList());
+            meta.lore(criteria.lore().values().stream()
+                    .map(line -> line.contains("&") ? LEGACY.deserialize(line) : MiniMessages.parse(line))
+                    .toList());
         }
         for (EnchantmentCriterion criterion : criteria.enchantments()) {
             var enchantment = ItemMatcher.enchantment(criterion.key());
@@ -212,17 +219,24 @@ final class CheckItemService {
             }
             potionMeta.setBasePotionType(potionType);
         }
+        if (criteria.customModelData() != null) {
+            applyCustomModelData(meta, criteria.customModelData());
+        }
+        itemData.apply(meta, criteria.pdc());
         if (!item.setItemMeta(meta)) {
             return null;
         }
-        if (criteria.customModelData() != null) {
-            item.setData(
-                    DataComponentTypes.CUSTOM_MODEL_DATA,
-                    CustomModelData.customModelData().addFloat(criteria.customModelData().floatValue())
-            );
-        }
-        itemData.apply(item, criteria.rawData());
         return item.asOne();
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void applyCustomModelData(ItemMeta meta, int customModelData) {
+        if (meta.hasCustomModelDataComponent()) {
+            var comp = meta.getCustomModelDataComponent();
+            comp.setFloats(List.of((float) customModelData));
+        } else {
+            meta.setCustomModelData(customModelData);
+        }
     }
 
     private record InventoryItem(int slot, ItemStack item) {

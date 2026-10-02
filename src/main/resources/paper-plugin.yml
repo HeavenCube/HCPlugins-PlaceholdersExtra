@@ -19,10 +19,6 @@ dependencies:
       load: BEFORE
       required: true
       join-classpath: true
-    NBTAPI:
-      load: BEFORE
-      required: true
-      join-classpath: true
     Nexo:
       load: BEFORE
       required: false

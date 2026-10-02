@@ -13,17 +13,21 @@ record ItemCriteria(
         boolean enchanted,
         PotionCriterion potion,
         String nexoId,
-        List<RawDataCriterion> rawData,
+        List<PdcCriterion> pdc,
         boolean strict
 ) {
 
     ItemCriteria {
         enchantments = List.copyOf(enchantments);
-        rawData = List.copyOf(rawData);
+        pdc = List.copyOf(pdc);
     }
 
     int requestedAmount() {
         return requiredAmount == null ? 1 : requiredAmount;
+    }
+
+    List<PdcCriterion> rawData() {
+        return pdc;
     }
 
     record TextCriterion(Mode mode, List<String> values) {

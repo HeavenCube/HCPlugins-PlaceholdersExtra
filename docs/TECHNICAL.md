@@ -9,7 +9,7 @@ le packaging et la CI. Ce guide local décrit les particularités à préserver 
 
 ## Dépendances et compilation
 
-HCCore, PlaceholderAPI et NBTAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
+HCCore et PlaceholderAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
 
 Cloner Core à côté. Le sous-projet placeholders-api est embarqué non relocalisé dans le JAR Shadow propriétaire ; les plugins contributeurs le compilent en composite + compileOnly.
 
@@ -57,7 +57,7 @@ HCPlaceholdersExtra publie PlaceholderProviderRegistry via ServicesManager et en
 | [CheckItemParser.java](../src/main/java/fr/noltox/hcplugins/placeholdersextra/provider/checkitem/CheckItemParser.java) | Grammaire et erreurs ; conserver les échappements. |
 | [SimpleVoiceChatBridge.java](../src/main/java/fr/noltox/hcplugins/placeholdersextra/provider/voicechat/SimpleVoiceChatBridge.java) | Callbacks voice chat et état d’activité. |
 | [NexoApiItemBridge.java](../src/main/java/fr/noltox/hcplugins/placeholdersextra/provider/checkitem/NexoApiItemBridge.java) | API Nexo publique facultative. |
-| [NbtApiItemDataBridge.java](../src/main/java/fr/noltox/hcplugins/placeholdersextra/provider/checkitem/NbtApiItemDataBridge.java) | NBTAPI serveur et données d’item. |
+| [PaperPdcItemBridge.java](../src/main/java/fr/noltox/hcplugins/placeholdersextra/provider/checkitem/PaperPdcItemBridge.java) | PersistentDataContainer PaperMC et données d'item. |
 
 `src/main/resources/paper-plugin.yml` définit identité, dépendances et permissions serveur.
 `settings.gradle.kts` définit les builds composites ; `build.gradle.kts` le packaging.
@@ -67,7 +67,7 @@ maintient les dépendances. Une mise à jour de dépendance doit conserver ces c
 ## Invariants et zones à risque
 
 - Plugin serveur `HCPlaceholdersExtra`, HCCore obligatoire ; module `placeholders`.
-- HCCore, PlaceholderAPI et NBTAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
+- HCCore et PlaceholderAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
 - Ne pas créer une deuxième expansion HeavenCube : contribuer au registre existant.
 - Les fournisseurs peuvent être invoqués hors thread serveur. CheckItemProvider renvoie null dans ce cas : préserver ce contrôle avant accès/mutation inventaire, sans attente bloquante sur le scheduler.
 - Conserver compte LuckPerms de permissions directes, positives, exactes, non expirées ; ne pas transformer en comptage de groupes/wildcards.

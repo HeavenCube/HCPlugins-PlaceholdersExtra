@@ -11,7 +11,6 @@ dependencyResolutionManagement {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
         maven("https://repo.extendedclip.com/releases/")
-        maven("https://repo.codemc.io/repository/maven-public/")
         maven("https://repo.nexomc.com/releases/")
         maven("https://maven.maxhenkel.de/repository/public")
     }
