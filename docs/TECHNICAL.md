@@ -2,6 +2,9 @@
 
 ## Point d’entrée
 
+Cible : Paper 26.3 (`26.3.build.+`), Java 25 sans preview. Compilation avec `-Xlint:all` ;
+examiner les warnings avant de les attribuer au plugin ou à une dépendance.
+
 Ce dépôt appartient à la suite privée d’usage HeavenCube, publiée comme source consultable.
 Il dépend obligatoirement de HCCore. Lire d’abord [AGENTS.md](../AGENTS.md), puis le Core voisin.
 Le [guide commun](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/ECOSYSTEM.md) décrit les règles Java/Paper, les contrats Core,
@@ -82,6 +85,18 @@ un loader YAML, un registre de commandes ou un catalogue de traductions. Garder 
 thread réel, puis revalider le contexte avant mutation.
 
 ## Validation et limites
+
+CheckItem valide tous les critères avant le contrôle strict, même sans metadata. Les enchantements
+stockés des livres comptent aussi ; une recherche matériau seule évite le snapshot ItemMeta.
+CustomModelData utilise les floats du composant moderne ; après modification du snapshot,
+`setCustomModelDataComponent` est obligatoire. Les autres canaux du composant sont conservés.
+`ItemMatcherTest` et `CustomModelDataTest` protègent ces régressions.
+
+L’API Nexo de compilation reste 1.28.0, dernière release du dépôt Maven vérifiée pendant cet audit.
+Le serveur Minecraft 26.3 exige Nexo 1.29 ou une build ultérieure compatible selon la matrice Nexo :
+[versions serveur](https://github.com/Nexo-MC/Nexo-Documentation/blob/master/version-support.md).
+La compilation du bridge ne valide pas la version installée. Kotlin Metadata manquant dans ce JAR
+compileOnly peut produire des warnings `classfile` ; ne pas embarquer Kotlin uniquement pour les masquer.
 
 Tests existants de cache LuckPerms, parser/matcher CheckItem et bridge voice chat. En jeu : contextes LuckPerms, variantes checkitem, give/remove/surplus, Nexo absent/présent, NBT, viewer/target distincts, voicechat et disable/re-enable d’un contributeur.
 

@@ -6,10 +6,11 @@ version = rootProject.version
 java { toolchain.languageVersion = JavaLanguageVersion.of(25) }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.+")
 }
 
 tasks.withType<JavaCompile>().configureEach {
     options.release = 25
     options.encoding = "UTF-8"
+    options.compilerArgs.add("-Xlint:all")
 }

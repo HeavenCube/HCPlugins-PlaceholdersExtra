@@ -11,7 +11,7 @@ java { toolchain.languageVersion = JavaLanguageVersion.of(25) }
 dependencies {
     implementation(project(":placeholders-api"))
     compileOnly("fr.noltox.hcplugins:core-api")
-    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    compileOnly("io.papermc.paper:paper-api:26.3.build.+")
     compileOnly("me.clip:placeholderapi:2.12.3")
     compileOnly("net.luckperms:api:5.5")
     compileOnly("de.maxhenkel.voicechat:voicechat-api:2.6.24")
@@ -19,7 +19,7 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter:6.1.3")
     testImplementation("fr.noltox.hcplugins:core-api")
-    testImplementation("io.papermc.paper:paper-api:26.2.build.+")
+    testImplementation("io.papermc.paper:paper-api:26.3.build.+")
     testImplementation("de.maxhenkel.voicechat:voicechat-api:2.6.24")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
 }
@@ -27,6 +27,7 @@ dependencies {
 tasks.withType<JavaCompile>().configureEach {
     options.release = 25
     options.encoding = "UTF-8"
+    options.compilerArgs.add("-Xlint:all")
 }
 
 tasks.processResources {

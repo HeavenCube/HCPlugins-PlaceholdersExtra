@@ -3,6 +3,7 @@ package fr.noltox.hcplugins.placeholdersextra.provider.checkitem;
 import fr.noltox.hcplugins.core.api.message.MiniMessages;
 import net.kyori.adventure.text.Component;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.Material;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.junit.jupiter.api.Test;
 
@@ -115,7 +116,7 @@ class ItemMatcherTest {
     void nullAndAirSafelyHandledInMatcher() {
         ItemMatcher matcher = new ItemMatcher(new FakeItemDataBridge(true), customItems(null));
 
-        assertFalse(matcher.matches((ItemStack) null, ItemCriteria.TextCriterion.Mode.EQUALS != null ? null : null));
+        assertFalse(matcher.matches((ItemStack) null, null));
         assertTrue(ItemMatcher.checkDisplayName(null, null));
         assertFalse(ItemMatcher.checkDisplayName(null, new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.EQUALS, List.of("Nom"))));
         assertTrue(ItemMatcher.checkLore(null, null));
@@ -124,6 +125,64 @@ class ItemMatcherTest {
         assertFalse(ItemMatcher.checkCustomModelData(null, 123));
         assertTrue(ItemMatcher.checkPdc(null, List.of()));
         assertFalse(ItemMatcher.checkPdc(null, List.of(new PdcCriterion(org.bukkit.NamespacedKey.minecraft("test"), PdcCriterion.PdcType.ANY, null))));
+    }
+
+    @Test
+    void strictCriteriaCannotMatchMissingMetadata() throws Exception {
+        ItemMatcher matcher = new ItemMatcher(new FakeItemDataBridge(true), customItems(null));
+        ItemStack plainStone = new PlainStone();
+        assertTrue(matcher.matches(plainStone, criteria("mat:STONE,strict")));
+        for (String requested : List.of("nameequals:Nom", "loreequals:Lore", "custommodeldata:123", "pdcints:level=2")) {
+            assertFalse(matcher.matches(plainStone, criteria("mat:STONE,strict," + requested)), requested);
+        }
+    }
+
+    @Test
+    void materialOnlyMatchingDoesNotReadMetadata() throws Exception {
+        ItemMatcher matcher = new ItemMatcher(new FakeItemDataBridge(true), customItems(null));
+        ItemStack stone = new PlainStone() {
+            @Override
+            public boolean hasItemMeta() {
+                throw new AssertionError("Material-only matching must not read metadata");
+            }
+        };
+        assertTrue(matcher.matches(stone, criteria("mat:STONE")));
+        assertFalse(matcher.matches(stone, criteria("mat:DIRT")));
+    }
+
+    @Test
+    void strictMatchingRejectsUnrequestedStoredEnchantments() throws Exception {
+        ItemMeta enchantedBook = (ItemMeta) java.lang.reflect.Proxy.newProxyInstance(
+                getClass().getClassLoader(),
+                new Class<?>[]{org.bukkit.inventory.meta.EnchantmentStorageMeta.class},
+                (_, method, _) -> switch (method.getName()) {
+                    case "hasStoredEnchants" -> true;
+                    case "hasDisplayName", "hasLore", "hasEnchants", "hasCustomModelDataComponent" -> false;
+                    default -> throw new AssertionError("Unexpected metadata call: " + method.getName());
+                });
+        assertFalse(ItemMatcher.checkStrict(null, enchantedBook, criteria("mat:STONE,strict")));
+    }
+
+    private static class PlainStone extends ItemStack {
+        @Override
+        public Material getType() {
+            return Material.STONE;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        public boolean hasItemMeta() {
+            return false;
+        }
+
+        @Override
+        public Map<org.bukkit.enchantments.Enchantment, Integer> getEnchantments() {
+            return Map.of();
+        }
     }
 
     private ItemCriteria criteria(String value) throws CheckItemParseException {

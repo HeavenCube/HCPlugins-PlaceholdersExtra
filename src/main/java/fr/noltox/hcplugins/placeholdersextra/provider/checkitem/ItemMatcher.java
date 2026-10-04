@@ -127,7 +127,6 @@ final class ItemMatcher {
         };
     }
 
-    @SuppressWarnings("deprecation")
     static boolean checkCustomModelData(ItemMeta meta, Integer expected) {
         if (expected == null) {
             return true;
@@ -145,13 +144,9 @@ final class ItemMatcher {
                 }
             }
         }
-        if (meta.hasCustomModelData()) {
-            return meta.getCustomModelData() == expected;
-        }
         return false;
     }
 
-    @SuppressWarnings("deprecation")
     static Integer extractCustomModelData(ItemMeta meta) {
         if (meta == null) {
             return null;
@@ -166,9 +161,6 @@ final class ItemMatcher {
                 }
             }
         }
-        if (meta.hasCustomModelData()) {
-            return meta.getCustomModelData();
-        }
         return null;
     }
 
@@ -178,6 +170,9 @@ final class ItemMatcher {
             List<EnchantmentCriterion> criteria,
             boolean mustBeEnchanted
     ) {
+        if (!mustBeEnchanted && criteria.isEmpty()) {
+            return true;
+        }
         boolean hasAny = (meta != null && meta.hasEnchants())
                 || (item != null && !item.getEnchantments().isEmpty())
                 || (meta instanceof EnchantmentStorageMeta storageMeta && storageMeta.hasStoredEnchants());
@@ -364,7 +359,6 @@ final class ItemMatcher {
         };
     }
 
-    @SuppressWarnings("deprecation")
     static boolean checkStrict(ItemStack item, ItemMeta meta, ItemCriteria criteria) {
         if (meta == null) {
             return true;
@@ -375,10 +369,11 @@ final class ItemMatcher {
         if (criteria.lore() == null && meta.hasLore() && meta.lore() != null && !meta.lore().isEmpty()) {
             return false;
         }
-        if (criteria.customModelData() == null && (meta.hasCustomModelDataComponent() || meta.hasCustomModelData())) {
+        if (criteria.customModelData() == null && meta.hasCustomModelDataComponent()) {
             return false;
         }
-        boolean hasEnchants = meta.hasEnchants() || (item != null && !item.getEnchantments().isEmpty());
+        boolean hasEnchants = meta.hasEnchants() || (item != null && !item.getEnchantments().isEmpty())
+                || (meta instanceof EnchantmentStorageMeta storageMeta && storageMeta.hasStoredEnchants());
         if ((criteria.enchantments().isEmpty() && !criteria.enchanted()) && hasEnchants) {
             return false;
         }
@@ -405,7 +400,7 @@ final class ItemMatcher {
     }
 
     boolean matches(ItemStack item, ItemCriteria criteria) {
-        if (item == null || item.isEmpty() || item.getType().isAir()) {
+        if (item == null || item.isEmpty()) {
             return false;
         }
         if (criteria.material() != null && !criteria.material().equals(item.getType().name())) {
@@ -427,8 +422,8 @@ final class ItemMatcher {
                 || !criteria.enchantments().isEmpty()
                 || criteria.strict();
 
-        if (needsMeta && !item.hasItemMeta()) {
-            return criteria.strict() && item.getEnchantments().isEmpty();
+        if (!needsMeta) {
+            return true;
         }
 
         ItemMeta meta = item.hasItemMeta() ? item.getItemMeta() : null;

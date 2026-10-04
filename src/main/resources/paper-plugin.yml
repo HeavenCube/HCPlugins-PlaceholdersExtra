@@ -1,7 +1,7 @@
 name: HCPlaceholdersExtra
 version: "${version}"
 main: fr.noltox.hcplugins.placeholdersextra.HCPlaceholdersExtra
-api-version: "26.2"
+api-version: "26.3"
 description: Centralise les placeholders personnalisés HeavenCube.
 author: Noltox
 website: https://heavencube.fr/

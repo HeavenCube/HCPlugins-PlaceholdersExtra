@@ -1,5 +1,7 @@
 # HCPlugins-PlaceholdersExtra
 
+**Cible : Paper/Minecraft 26.3 exclusivement, Java 25.** Le build utilise `26.3.build.+`.
+
 **CI :** sources/ressources/build seulement ; docs seules sans runner. Pour les exceptions,
 voir [la politique CI et les marqueurs de skip](https://github.com/HeavenCube/HCPlugins-actions/blob/main/docs/CI_COSTS.md).
 
@@ -10,7 +12,8 @@ réservé aux serveurs HeavenCube. Toute réutilisation ou distribution exige un
 autorisation écrite préalable. Voir [LICENSE](LICENSE).
 
 Cloner `HCPlugins-Core` à côté de ce dépôt, puis lancer `./gradlew build`.
-La CI compile Core depuis ses sources et crée un JAR versionné à chaque build de `main`.
+La CI compile Core depuis ses sources ; le build produit un JAR versionné
+et la release de `main` joint sa copie à nom fixe `HCPlaceholdersExtra.jar`.
 
 Le module `placeholders-api` est un contrat Java local pour les plugins contributeurs,
 compilé depuis ce dépôt par Gradle composite. Aucun package Maven n'est publié.

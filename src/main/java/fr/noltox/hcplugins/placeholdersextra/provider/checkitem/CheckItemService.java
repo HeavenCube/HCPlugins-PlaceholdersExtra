@@ -229,14 +229,10 @@ final class CheckItemService {
         return item.asOne();
     }
 
-    @SuppressWarnings("deprecation")
-    private static void applyCustomModelData(ItemMeta meta, int customModelData) {
-        if (meta.hasCustomModelDataComponent()) {
-            var comp = meta.getCustomModelDataComponent();
-            comp.setFloats(List.of((float) customModelData));
-        } else {
-            meta.setCustomModelData(customModelData);
-        }
+    static void applyCustomModelData(ItemMeta meta, int customModelData) {
+        var component = meta.getCustomModelDataComponent();
+        component.setFloats(List.of((float) customModelData));
+        meta.setCustomModelDataComponent(component);
     }
 
     private record InventoryItem(int slot, ItemStack item) {
