@@ -17,6 +17,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SuppressWarnings("java:S5960")
 class ItemMatcherTest {
 
+    @Test
+    void lazySerializationPreservesAllModesAndFormattedFallbacks() {
+        Component text = MiniMessages.parse("<red>Épée Magique</red>");
+        for (var mode : ItemCriteria.TextCriterion.Mode.values()) {
+            for (String expected : List.of("Épée Magique", "<red>Épée Magique</red>", "&cÉpée Magique", "§cÉpée Magique")) {
+                assertTrue(ItemMatcher.matchesComponentText(text,
+                        new ItemCriteria.TextCriterion(mode, List.of(expected))), mode + ": " + expected);
+            }
+            assertFalse(ItemMatcher.matchesComponentText(text,
+                    new ItemCriteria.TextCriterion(mode, List.of("Introuvable"))), mode.name());
+        }
+        assertTrue(ItemMatcher.matchesComponentText(text,
+                new ItemCriteria.TextCriterion(ItemCriteria.TextCriterion.Mode.CONTAINS, List.of("<red>"))));
+    }
+
     private final CheckItemParser parser = new CheckItemParser(
             value -> value.equals("STONE") || value.equals("DIRT"),
             value -> true

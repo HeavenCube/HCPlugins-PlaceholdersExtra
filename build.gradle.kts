@@ -21,6 +21,7 @@ dependencies {
     testImplementation("fr.noltox.hcplugins:core-api")
     testImplementation("io.papermc.paper:paper-api:26.3.build.+")
     testImplementation("de.maxhenkel.voicechat:voicechat-api:2.6.24")
+    testImplementation("net.luckperms:api:5.5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.1.3")
 }
 

@@ -61,11 +61,11 @@ final class CheckItemService {
     }
 
     private static List<InventoryItem> selectedItem(int slot, ItemStack item) {
-        return item == null || item.isEmpty() || item.getType().isAir() ? List.of() : List.of(new InventoryItem(slot, item));
+        return item == null || item.isEmpty() ? List.of() : List.of(new InventoryItem(slot, item));
     }
 
     private static void addIfPresent(List<InventoryItem> items, int slot, ItemStack item) {
-        if (item != null && !item.isEmpty() && !item.getType().isAir()) {
+        if (item != null && !item.isEmpty()) {
             items.add(new InventoryItem(slot, item));
         }
     }
@@ -95,7 +95,7 @@ final class CheckItemService {
     ) {
         return switch (query.operation()) {
             case CHECK -> Boolean.toString(check(inventory, query));
-            case AMOUNT -> Integer.toString(scan(inventory, query).amount().total());
+            case AMOUNT -> Integer.toString(count(inventory, query, false).total());
             case GET_INFO -> {
                 List<InventoryItem> selected = selectedItems(inventory, query.selection());
                 yield infoFormatter.format(selected.isEmpty() ? null : selected.getFirst().item(), query.infoRequests());
@@ -106,9 +106,29 @@ final class CheckItemService {
     }
 
     private boolean check(PlayerInventory inventory, CheckItemQuery query) {
-        MatchScan scan = scan(inventory, query);
         int requested = query.criteria().requestedAmount();
-        return scan.amount().satisfies(requested, query.criteria().strict());
+        return count(inventory, query, !query.criteria().strict()).satisfies(requested, query.criteria().strict());
+    }
+
+    /** Read-only queries need no list of matching slots; only REMOVE retains those slots. */
+    private MatchAccumulator count(PlayerInventory inventory, CheckItemQuery query, boolean stopWhenSatisfied) {
+        ItemStack[] contents = switch (query.selection().kind()) {
+            case INVENTORY -> Objects.requireNonNull(inventory.getContents(), "inventory contents");
+            case HANDS -> new ItemStack[]{inventory.getItemInMainHand(), inventory.getItemInOffHand()};
+            case MAIN_HAND -> new ItemStack[]{inventory.getItemInMainHand()};
+            case OFF_HAND -> new ItemStack[]{inventory.getItemInOffHand()};
+            case SLOT -> new ItemStack[]{inventory.getItem(query.selection().slot())};
+        };
+        var amount = new MatchAccumulator();
+        for (ItemStack item : contents) {
+            if (matcher.matches(item, query.criteria())) {
+                amount.add(item.getAmount());
+                if (stopWhenSatisfied && amount.satisfies(query.criteria().requestedAmount(), false)) {
+                    break;
+                }
+            }
+        }
+        return amount;
     }
 
     private String give(

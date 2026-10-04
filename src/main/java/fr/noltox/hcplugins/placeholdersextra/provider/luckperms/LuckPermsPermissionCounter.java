@@ -11,6 +11,8 @@ import net.luckperms.api.query.QueryOptions;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletionException;
 
 /**
  * Compte de façon asynchrone les utilisateurs auxquels un nœud de permission
@@ -58,15 +60,24 @@ final class LuckPermsPermissionCounter {
     CompletableFuture<Integer> count(PermissionQuery query) {
         Objects.requireNonNull(query, "query");
 
-        return CompletableFuture.supplyAsync(() -> prepare(query), executor)
-                .thenCompose(prepared -> findStoredNodes(prepared)
-                        .thenApplyAsync(
-                                storedNodes -> countDirectPermissions(
-                                        prepared,
-                                        storedNodes
-                                ),
-                                executor
-                        ));
+        // One bounded virtual-thread task per refresh. Waiting for LuckPerms storage
+        // parks that thread; CPU filtering remains off the server/LP completion threads.
+        return CompletableFuture.supplyAsync(() -> {
+            PreparedQuery prepared = prepare(query);
+            return countDirectPermissions(prepared, awaitStorage(findStoredNodes(prepared)));
+        }, executor);
+    }
+
+    /** Interruptible wait: shutdownNow() must release workers even if LP storage is stalled. */
+    static <T> T awaitStorage(CompletableFuture<T> storage) {
+        try {
+            return storage.get();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new CompletionException(exception);
+        } catch (ExecutionException exception) {
+            throw new CompletionException(exception.getCause());
+        }
     }
 
     private PreparedQuery prepare(PermissionQuery query) {

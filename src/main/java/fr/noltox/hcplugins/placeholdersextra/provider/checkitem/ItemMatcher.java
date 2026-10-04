@@ -95,9 +95,10 @@ final class ItemMatcher {
         }
         String expected = criterion.values().getFirst();
         String plain = PLAIN.serialize(component);
-        String mini = MINI_MESSAGE.serialize(component);
-        String legacyAmp = LEGACY_AMP.serialize(component);
-        String legacySec = LEGACY_SECTION.serialize(component);
+        var mode = criterion.mode();
+        if (matchesText(plain, expected, mode)) {
+            return true;
+        }
 
         String expectedPlain = expected.contains("<")
                 ? PLAIN.serialize(MiniMessages.parse(expected))
@@ -105,25 +106,21 @@ final class ItemMatcher {
                 ? PLAIN.serialize(LEGACY_AMP.deserialize(expected))
                 : expected);
 
-        return switch (criterion.mode()) {
-            case CONTAINS -> plain.contains(expected)
-                    || plain.contains(expectedPlain)
-                    || mini.contains(expected)
-                    || legacyAmp.contains(expected)
-                    || legacySec.contains(expected)
-                    || legacySec.contains(expected.replace('&', '§'));
-            case STARTS_WITH -> plain.startsWith(expected)
-                    || plain.startsWith(expectedPlain)
-                    || mini.startsWith(expected)
-                    || legacyAmp.startsWith(expected)
-                    || legacySec.startsWith(expected)
-                    || legacySec.startsWith(expected.replace('&', '§'));
-            case EQUALS -> plain.equals(expected)
-                    || plain.equals(expectedPlain)
-                    || mini.equals(expected)
-                    || legacyAmp.equals(expected)
-                    || legacySec.equals(expected)
-                    || legacySec.equals(expected.replace('&', '§'));
+        if (matchesText(plain, expectedPlain, mode)
+                || matchesText(MINI_MESSAGE.serialize(component), expected, mode)
+                || matchesText(LEGACY_AMP.serialize(component), expected, mode)) {
+            return true;
+        }
+        String legacySection = LEGACY_SECTION.serialize(component);
+        return matchesText(legacySection, expected, mode)
+                || matchesText(legacySection, expected.replace('&', '§'), mode);
+    }
+
+    private static boolean matchesText(String actual, String expected, ItemCriteria.TextCriterion.Mode mode) {
+        return switch (mode) {
+            case CONTAINS -> actual.contains(expected);
+            case STARTS_WITH -> actual.startsWith(expected);
+            case EQUALS -> actual.equals(expected);
         };
     }
 

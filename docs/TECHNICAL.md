@@ -69,6 +69,13 @@ maintient les dépendances. Une mise à jour de dépendance doit conserver ces c
 
 ## Invariants et zones à risque
 
+- Audit performance : LP garde TTL 30 s, 1 024 snapshots, 1 024 refreshs actifs/en attente
+  et quatre calculs simultanés. Une tâche virtuelle par refresh ; attente de storage
+  interruptible uniquement dans ce worker. Fermer le cache puis l'executor au teardown.
+  CHECK non strict peut arrêter le matching dès la quantité suffisante ; strict/AMOUNT
+  comptent tous les stacks et REMOVE garde les slots. Pas de cache des inventaires.
+  [Rapport global](https://github.com/HeavenCube/HCPlugins-Core/blob/main/docs/PERFORMANCE_AUDIT.md).
+
 - Plugin serveur `HCPlaceholdersExtra`, HCCore obligatoire ; module `placeholders`.
 - HCCore et PlaceholderAPI obligatoires ; LuckPerms, Nexo et Simple Voice Chat facultatifs.
 - Ne pas créer une deuxième expansion HeavenCube : contribuer au registre existant.

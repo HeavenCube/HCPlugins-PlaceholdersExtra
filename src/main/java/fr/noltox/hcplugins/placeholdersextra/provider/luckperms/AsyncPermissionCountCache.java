@@ -20,6 +20,7 @@ final class AsyncPermissionCountCache implements AutoCloseable {
     private final AtomicBoolean draining = new AtomicBoolean();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final Semaphore refreshPermits;
+    private final Semaphore pendingRefreshPermits;
     private final long timeToLiveNanos;
     private final int maximumSize;
     private final Loader loader;
@@ -65,6 +66,7 @@ final class AsyncPermissionCountCache implements AutoCloseable {
         this.timeToLiveNanos = timeToLive.toNanos();
         this.maximumSize = maximumSize;
         this.refreshPermits = new Semaphore(maximumConcurrentRefreshes);
+        this.pendingRefreshPermits = new Semaphore(maximumSize);
         this.loader = Objects.requireNonNull(loader, "loader");
         this.failureHandler = Objects.requireNonNull(failureHandler, "failureHandler");
         this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
@@ -116,25 +118,27 @@ final class AsyncPermissionCountCache implements AutoCloseable {
     }
 
     private void refresh(PermissionQuery query) {
-        if (closed.get()) {
+        if (closed.get() || refreshes.containsKey(query) || !pendingRefreshPermits.tryAcquire()) {
             return;
         }
         if (refreshes.putIfAbsent(query, Boolean.TRUE) != null) {
+            pendingRefreshPermits.release();
             return;
         }
         if (closed.get()) {
             refreshes.remove(query);
-            return;
-        }
-        if (!snapshots.containsKey(query) && refreshes.size() > maximumSize) {
-            refreshes.remove(query);
+            pendingRefreshPermits.release();
             return;
         }
 
         refreshQueue.add(query);
         if (closed.get()) {
-            refreshQueue.remove(query);
-            refreshes.remove(query);
+            // Only a still-queued request belongs to this caller; a drained request
+            // releases its reservation in finishRefresh(). A closed cache is never reused.
+            if (refreshQueue.remove(query)) {
+                refreshes.remove(query);
+                pendingRefreshPermits.release();
+            }
             return;
         }
         drainRefreshQueue();
@@ -256,7 +260,9 @@ final class AsyncPermissionCountCache implements AutoCloseable {
 
     private void finishRefresh(PermissionQuery query) {
         runningRefreshes.remove(query);
-        refreshes.remove(query);
+        if (refreshes.remove(query) != null) {
+            pendingRefreshPermits.release();
+        }
         refreshPermits.release();
         drainRefreshQueue();
     }
