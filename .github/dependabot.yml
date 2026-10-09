@@ -1,8 +1,18 @@
 version: 2
 
+# Public Maven hosts must also be allowed by Dependabot's network proxy.
+registries:
+  nexo:
+    type: maven-repository
+    url: https://repo.nexomc.com/releases/
+  voicechat:
+    type: maven-repository
+    url: https://maven.maxhenkel.de/repository/public
+
 updates:
   - package-ecosystem: gradle
     directory: /
+    registries: [nexo, voicechat]
     schedule:
       interval: weekly
     labels: [dependencies]

@@ -67,6 +67,17 @@ HCPlaceholdersExtra publie PlaceholderProviderRegistry via ServicesManager et en
 `.github/workflows/build.yml` appelle les actions partagées à `@main` ; `.github/dependabot.yml`
 maintient les dépendances. Une mise à jour de dépendance doit conserver ces contrats.
 
+### Vérifications Dependabot
+
+Les registres publics Nexo et Simple Voice Chat sont déclarés dans `.github/dependabot.yml`
+et référencés par le job Gradle. Cette déclaration autorise leurs domaines dans le proxy réseau
+Dependabot ; aucun identifiant Maven n'est nécessaire. Une URL uniquement présente dans
+`settings.gradle.kts` ne suffit pas pour ce proxy.
+
+Si le journal indique `egress not allowlisted`, vérifier les registres du job avant de modifier
+les secrets : le refus réseau `403` peut apparaître comme `private_source_authentication_failure`.
+`HCPLUGINS_CORE_READ_TOKEN` sert au checkout Git de Core pendant la CI d'une PR, pas à ces dépôts Maven.
+
 ## Invariants et zones à risque
 
 - Audit performance : LP garde TTL 30 s, 1 024 snapshots, 1 024 refreshs actifs/en attente
